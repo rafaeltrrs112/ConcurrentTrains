@@ -1,18 +1,35 @@
 package sample.hello
 
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import _root_.util.RandomName._
+import examples.ScalaFXHelloWorld._
 
+import scala.concurrent.duration.Duration
+import scala.util.Random
+import scala.collection.mutable.ArrayBuffer
+import scala.collection.immutable
+import scalafx._
 import akka.actor.Actor.Receive
 import akka.actor._
-import scalafx._
-import scala.collection.immutable
+
+import scalafx.Includes._
+import scalafx.application.{Platform, JFXApp}
+import scalafx.application.JFXApp.PrimaryStage
+import scalafx.application.Platform.runLater
+import scalafx.beans.property.StringProperty
+import scalafx.geometry.Insets
+import scalafx.scene.Scene
+import scalafx.scene.control.{Button, Label}
+import scalafx.scene.input.MouseEvent
+import scalafx.scene.layout.BorderPane
 
 case class Number(number : Int)
 case class Job()
 case class Seat(direction : Int, name: String)
 case class Close()
 case class Seated(passenger : String)
-case class Batch(batch : immutable.Queue[Seat])
+case class Batch(batch : scala.collection.mutable.Queue[Seat])
 case class Done(done : Int)
 object Worker{
   def props(assignedDoor: String, maxOccupancy : Int, direction : Int) : Props = Props(new Worker(assignedDoor, maxOccupancy, direction))
@@ -21,27 +38,27 @@ object Worker{
 
 class Worker(val assignedDoor : String, val maxOccupancy : Int, assignedDirection : Int) extends Actor {
   val lineQueue = scala.collection.mutable.Queue[Seat]()
-  val trainQueue = immutable.Queue[Seat]()
+  val trainQueue = scala.collection.mutable.Queue[Seat]()
+  var onHold : AtomicBoolean = new AtomicBoolean(false)
   //get count message and print it out
   def receive = {
-    case seat : Seat =>
-      if(trainQueue.size < maxOccupancy) {
-        println("Sending " + seat.name + " to " + assignedDoor)
-        trainQueue.enqueue(seat)
-        trainQueue.foreach(println(_))
-      }
-      else{
-        println("Sending " + seat.name + " to " + assignedDoor)
-        lineQueue.enqueue(seat)
-        lineQueue.foreach(println(_))
-        sender ! Close
-      }
-    case Batch(passengers) =>{
+
+      //Not sure if workers should handle a batch of people or a bunch of people all at once...hmmm
+    case Batch(passengers) => {
       passengers.foreach((passenger) => {
-        println("Sending " + passenger.name + " to " + assignedDoor)
-        lineQueue.enqueue(passenger)
-        sender ! Done(assignedDirection)
+        if(trainQueue.size < maxOccupancy){
+          println("Sending " + passenger.name + " to " + assignedDoor)
+          trainQueue.enqueue(passenger)
+        }else{
+          println("Sending " + passenger.name + " to the waiting line on platform " + assignedDoor)
+          lineQueue.enqueue(passenger)
+          onHold.set(true)
+          sender ! Done(assignedDirection)
+        }
+        Thread.sleep(1000)
       })
+//      Right now the actors cannot stop enable Done message to return to normal functionality
+//      sender ! Done(assignedDirection)
     }
   }
 }
@@ -53,8 +70,7 @@ object TrainStation{
   val SOUTH = 1
 }
 class TrainStation extends Actor{
-  val NORTH = 0
-  val SOUTH = 1
+
   var number = 0
 
   var northDone = new AtomicBoolean(false)
@@ -62,27 +78,24 @@ class TrainStation extends Actor{
 
   //A router aka akka executor service maintains a thread/actor pool of
   //4 and assigns them jobs round robin style
-  val workerOne = context.actorOf(Worker.props("North", 2, TrainStation.NORTH), "northWorker")
-  val workerTwo = context.actorOf(Worker.props("South", 2, TrainStation.SOUTH), "southWorker")
+  val workerOne = context.actorOf(Worker.props("North", 8, TrainStation.NORTH), "northWorker")
+  val workerTwo = context.actorOf(Worker.props("South", 8, TrainStation.SOUTH), "southWorker")
   override def receive = {
-    case  Seat(direction, name) => direction match {
-      case NORTH => workerOne ! Seat(direction, name)
-      case SOUTH => workerTwo ! Seat(direction, name)
-    }
-    case Close =>
-      sender ! Close
     case batch : Batch => {
-      println("received")
+      //Here the train station receives the people coming in and sorts them by desired travel direction
       val northernBatch = batch.batch.filter( _.direction == TrainStation.NORTH)
       val southernBatch = batch.batch.filter( _.direction == TrainStation.SOUTH)
       workerOne ! Batch(northernBatch)
       workerTwo ! Batch(southernBatch)
     }
     case Done(done) => {
-      if(done == TrainStation.NORTH) northDone.set(true)
-      else if(done == TrainStation.SOUTH) southDone.set(true)
-      if(northDone.get() && southDone.get()){
-        context.parent ! Close
+      if(done == TrainStation.NORTH && !northDone.get()){
+        northDone.set(true)
+        println("North Train Full!!")
+      }
+      else if(done == TrainStation.SOUTH && !southDone.get()) {
+        southDone.set(true)
+        println("South Train Full!")
       }
     }
   }
@@ -91,25 +104,46 @@ class TrainStation extends Actor{
 class Listener extends Actor {
 
   var systemOpen : AtomicBoolean = new AtomicBoolean(true)
-  val master = context.actorOf(Props(new TrainStation), name = "StationSystem")
 
   //Create a router that will hold up to four worker threads
   //Create a worker actor that will print out number
   override def receive: Receive = {
-    case Close => context.system.shutdown()
-    case batch : Batch => {
-      System.out.println("Received")
-      master ! batch
+    case Close => {
+      println("Closing system")
+      context.system.shutdown()
     }
   }
 }
-object TrainTestOne extends App {
+object TrainTestOne extends JFXApp {
   val system = ActorSystem("TrainTest")
-
-  val seats = immutable.Queue[Seat](Seat(TrainStation.SOUTH, "Ron"), Seat(TrainStation.NORTH, "Jon")
-                                   ,Seat(TrainStation.SOUTH, "Gone"), Seat(TrainStation.NORTH, "Bomb"))
-
-  seats.foreach((thing) => thing.name)
+  //The listener waits for the message to shut down the whole system
   val listener = system.actorOf(Props(new Listener), name = "Listener")
-  listener ! Batch(seats)
+  //This queue holds the queue of random people
+  val people = scala.collection.mutable.Queue[Seat]()
+  val master = system.actorOf(Props(new TrainStation), name = "StationSystem")
+
+
+  stage = new PrimaryStage {
+    title = "ScalaFX Hello World"
+    stage = new PrimaryStage{
+      scene = new Scene {
+        root = new BorderPane {
+          padding = Insets(20)
+          center = new Label{
+          }
+          center.onChange()
+          left = new Button("Click Me!"){
+            onMouseClicked = (me: MouseEvent) => {
+              runLater{
+                println("This button was clicked")
+                (for(i <- 0 to 5) yield Seat(Random.shuffle(ArrayBuffer(TrainStation.NORTH, TrainStation.SOUTH)).head , randomName)).foreach(people.enqueue(_))
+                master ! Batch(people)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
 }
