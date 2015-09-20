@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import _root_.util.RandomName._
 import examples.ScalaFXHelloWorld._
-
+import scala.collection.immutable.HashMap
 import scala.concurrent.duration.Duration
 import scala.util.Random
 import scala.collection.mutable.ArrayBuffer
@@ -22,7 +22,7 @@ import scalafx.geometry.Insets
 import scalafx.scene.Scene
 import scalafx.scene.control.{Button, Label}
 import scalafx.scene.input.MouseEvent
-import scalafx.scene.layout.BorderPane
+import scalafx.scene.layout.{HBox, BorderPane}
 
 case class Number(number : Int)
 case class Job()
@@ -33,6 +33,12 @@ case class Batch(batch : scala.collection.mutable.Queue[Seat])
 case class Done(done : Int)
 object Worker{
   def props(assignedDoor: String, maxOccupancy : Int, direction : Int) : Props = Props(new Worker(assignedDoor, maxOccupancy, direction))
+  def SouthernWorker(context : ActorContext) : ActorRef = {
+    context.actorOf(Worker.props("North", 8, TrainStation.NORTH), "northWorker")
+  }
+  def NorthernWorker(context: ActorContext) : ActorRef = {
+    context.actorOf(Worker.props("South", 8, TrainStation.SOUTH), "southWorker")
+  }
 }
 
 
@@ -42,15 +48,20 @@ class Worker(val assignedDoor : String, val maxOccupancy : Int, assignedDirectio
   var onHold : AtomicBoolean = new AtomicBoolean(false)
   //get count message and print it out
   def receive = {
-
       //Not sure if workers should handle a batch of people or a bunch of people all at once...hmmm
     case Batch(passengers) => {
       passengers.foreach((passenger) => {
         if(trainQueue.size < maxOccupancy){
           println("Sending " + passenger.name + " to " + assignedDoor)
+          Platform.runLater{
+            TrainTestOne.labelMap(assignedDirection).text.set("Sending " + passenger.name + " to " + assignedDoor)
+          }
           trainQueue.enqueue(passenger)
         }else{
           println("Sending " + passenger.name + " to the waiting line on platform " + assignedDoor)
+          Platform.runLater{
+            TrainTestOne.labelMap(assignedDirection).text.set("Sending " + passenger.name + " to the waiting line on platform " + assignedDoor)
+          }
           lineQueue.enqueue(passenger)
           onHold.set(true)
           sender ! Done(assignedDirection)
@@ -62,8 +73,6 @@ class Worker(val assignedDoor : String, val maxOccupancy : Int, assignedDirectio
     }
   }
 }
-
-
 
 object TrainStation{
   val NORTH = 0
@@ -121,28 +130,39 @@ object TrainTestOne extends JFXApp {
   //This queue holds the queue of random people
   val people = scala.collection.mutable.Queue[Seat]()
   val master = system.actorOf(Props(new TrainStation), name = "StationSystem")
+  val testLabel = new Label{
+    text = "Empty"
+  }
+  val northLabel = new Label(){
+    text = "North"
+  }
+  val southLabel = new Label(){
+    text = "South"
+  }
+  val centerButton = new Button(){
+    text = "Click to Send People"
+    onMouseClicked = (me: MouseEvent) => {
+      runLater{
+        (for(i <- 1 to 10 ) yield (Seat(Random.shuffle(ArrayBuffer(TrainStation.NORTH, TrainStation.SOUTH)).head, randomName))).foreach(people.enqueue(_))
+        master ! Batch(people)
+      }
+    }
 
+  }
+  val labelMap = HashMap(TrainStation.NORTH -> northLabel, TrainStation.SOUTH -> southLabel)
 
+  val hBox = new HBox(){
+    spacing = 10
+    content = List(
+    northLabel,
+    centerButton,
+    southLabel
+    )
+  }
   stage = new PrimaryStage {
     title = "ScalaFX Hello World"
-    stage = new PrimaryStage{
-      scene = new Scene {
-        root = new BorderPane {
-          padding = Insets(20)
-          center = new Label{
-          }
-          center.onChange()
-          left = new Button("Click Me!"){
-            onMouseClicked = (me: MouseEvent) => {
-              runLater{
-                println("This button was clicked")
-                (for(i <- 0 to 5) yield Seat(Random.shuffle(ArrayBuffer(TrainStation.NORTH, TrainStation.SOUTH)).head , randomName)).foreach(people.enqueue(_))
-                master ! Batch(people)
-              }
-            }
-          }
-        }
-      }
+    scene = new Scene(){
+      content = hBox
     }
   }
 
