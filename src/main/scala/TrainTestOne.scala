@@ -1,9 +1,7 @@
-package sample.hello
 
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import _root_.util.RandomName._
-import examples.ScalaFXHelloWorld._
+import util.RandomName._
 import scala.collection.immutable.HashMap
 import scala.concurrent.duration.Duration
 import scala.util.Random
