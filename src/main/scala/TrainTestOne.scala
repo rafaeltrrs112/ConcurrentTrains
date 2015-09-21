@@ -21,6 +21,8 @@ import scalafx.scene.Scene
 import scalafx.scene.control.{Button, Label}
 import scalafx.scene.input.MouseEvent
 import scalafx.scene.layout.{HBox, BorderPane}
+import scalafx.scene.paint.Color
+import scalafx.scene.shape.Circle
 
 case class Number(number : Int)
 case class Job()
@@ -44,27 +46,54 @@ class Worker(val assignedDoor : String, val maxOccupancy : Int, assignedDirectio
   val lineQueue = scala.collection.mutable.Queue[Seat]()
   val trainQueue = scala.collection.mutable.Queue[Seat]()
   var onHold : AtomicBoolean = new AtomicBoolean(false)
+  var goneTime = System.currentTimeMillis() / 1000
+  def currentTime = System.currentTimeMillis() / 1000
+
   //get count message and print it out
   def receive = {
       //Not sure if workers should handle a batch of people or a bunch of people all at once...hmmm
     case Batch(passengers) => {
+      if(onHold.get()){
+        println("Checking train")
+
+
+        println("The difference in time is " + (currentTime-goneTime))
+
+
+        if((currentTime - goneTime) > 5){
+
+
+          println("The Train is back passengers are getting of!!!")
+          onHold.set(false)
+          Platform.runLater{
+            TrainTestOne.circleMap(assignedDirection).fill = (Color.GREEN)
+          }
+          trainQueue.dequeue()
+        }
+      }
       passengers.foreach((passenger) => {
-        if(trainQueue.size < maxOccupancy){
+        if(trainQueue.size < maxOccupancy && !onHold.get()){
           println("Sending " + passenger.name + " to " + assignedDoor)
           Platform.runLater{
             TrainTestOne.labelMap(assignedDirection).text.set("Sending " + passenger.name + " to " + assignedDoor)
           }
           trainQueue.enqueue(passenger)
         }else{
-          println("Sending " + passenger.name + " to the waiting line on platform " + assignedDoor)
+          //If
+          println("Platform at dangerous capacity!! " + passenger.name + " to the waiting line on platform " + assignedDoor)
+          Platform.runLater{
+            TrainTestOne.circleMap(assignedDirection).fill = (Color.RED)
+
+          }
           Platform.runLater{
             TrainTestOne.labelMap(assignedDirection).text.set("Sending " + passenger.name + " to the waiting line on platform " + assignedDoor)
           }
           lineQueue.enqueue(passenger)
-          onHold.set(true)
-          sender ! Done(assignedDirection)
+          if(!onHold.get()) {
+            onHold.set(true)
+            goneTime = System.currentTimeMillis() / 1000
+          }
         }
-        Thread.sleep(1000)
       })
 //      Right now the actors cannot stop enable Done message to return to normal functionality
 //      sender ! Done(assignedDirection)
@@ -94,6 +123,7 @@ class TrainStation extends Actor{
       val southernBatch = batch.batch.filter( _.direction == TrainStation.SOUTH)
       workerOne ! Batch(northernBatch)
       workerTwo ! Batch(southernBatch)
+      batch.batch.clear()
     }
     case Done(done) => {
       if(done == TrainStation.NORTH && !northDone.get()){
@@ -137,24 +167,38 @@ object TrainTestOne extends JFXApp {
   val southLabel = new Label(){
     text = "South"
   }
+  val northCircle = new Circle(){
+    centerX = 100.0f
+    centerY = 100.0f
+    radius = 20.0f
+    fill = Color.GREEN
+  }
+  val southCircle = new Circle(){
+    centerX = 100.0f
+    centerY = 100.0f
+    radius = 20.0f
+    fill = Color.GREEN
+  }
   val centerButton = new Button(){
-    text = "Click to Send People"
+    text = "Click to Kill"
     onMouseClicked = (me: MouseEvent) => {
       runLater{
-        (for(i <- 1 to 10 ) yield (Seat(Random.shuffle(ArrayBuffer(TrainStation.NORTH, TrainStation.SOUTH)).head, randomName))).foreach(people.enqueue(_))
-        master ! Batch(people)
+        println(people.size)
+        system.shutdown()
       }
     }
-
   }
   val labelMap = HashMap(TrainStation.NORTH -> northLabel, TrainStation.SOUTH -> southLabel)
+  val circleMap = HashMap(TrainStation.NORTH -> northCircle, TrainStation.SOUTH -> southCircle)
 
   val hBox = new HBox(){
     spacing = 10
     content = List(
     northLabel,
     centerButton,
-    southLabel
+    southLabel,
+    northCircle,
+    southCircle
     )
   }
   stage = new PrimaryStage {
@@ -163,5 +207,14 @@ object TrainTestOne extends JFXApp {
       content = hBox
     }
   }
+  new Thread(){
+    override def run(): Unit ={
+      while(true){
+        Thread.sleep(2000)
+        (for(i <- 1 to 2 ) yield (Seat(Random.shuffle(ArrayBuffer(TrainStation.NORTH, TrainStation.SOUTH)).head, randomName))).foreach(people.enqueue(_))
+        master ! Batch(people)
+      }
+    }
+  }.start()
 
 }
