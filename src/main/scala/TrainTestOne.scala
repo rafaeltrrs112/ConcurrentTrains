@@ -41,11 +41,14 @@ object Worker{
   }
 }
 
-
 class Worker(val assignedDoor : String, val maxOccupancy : Int, assignedDirection : Int) extends Actor {
+
   val lineQueue = scala.collection.mutable.Queue[Seat]()
   val trainQueue = scala.collection.mutable.Queue[Seat]()
+
   var onHold : AtomicBoolean = new AtomicBoolean(false)
+
+
   var goneTime = System.currentTimeMillis() / 1000
   def currentTime = System.currentTimeMillis() / 1000
 
@@ -211,7 +214,9 @@ object TrainTestOne extends JFXApp {
     override def run(): Unit ={
       while(true){
         Thread.sleep(2000)
-        (for(i <- 1 to 2 ) yield (Seat(Random.shuffle(ArrayBuffer(TrainStation.NORTH, TrainStation.SOUTH)).head, randomName))).foreach(people.enqueue(_))
+        val randomDirection = Random.shuffle(ArrayBuffer(TrainStation.NORTH, TrainStation.SOUTH)).head
+        val newPassengers = for (i <- 1 to 2) yield Seat(randomDirection, randomName)
+        newPassengers.foreach(people.enqueue(_))
         master ! Batch(people)
       }
     }
