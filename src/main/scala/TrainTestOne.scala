@@ -69,7 +69,7 @@ class Worker(val assignedDoor : String, val maxOccupancy : Int, assignedDirectio
           println("The Train is back passengers are getting of!!!")
           onHold.set(false)
           Platform.runLater{
-            TrainTestOne.circleMap(assignedDirection).fill = (Color.GREEN)
+            TrainTestOne.circleMap(assignedDirection).fill = Color.Green
           }
           trainQueue.dequeue()
         }
@@ -85,7 +85,7 @@ class Worker(val assignedDoor : String, val maxOccupancy : Int, assignedDirectio
           //If
           println("Platform at dangerous capacity!! " + passenger.name + " to the waiting line on platform " + assignedDoor)
           Platform.runLater{
-            TrainTestOne.circleMap(assignedDirection).fill = (Color.RED)
+            TrainTestOne.circleMap(assignedDirection).fill = Color.Red
 
           }
           Platform.runLater{
@@ -174,13 +174,13 @@ object TrainTestOne extends JFXApp {
     centerX = 100.0f
     centerY = 100.0f
     radius = 20.0f
-    fill = Color.GREEN
+    fill = Color.Green
   }
   val southCircle = new Circle(){
     centerX = 100.0f
     centerY = 100.0f
     radius = 20.0f
-    fill = Color.GREEN
+    fill = Color.Green
   }
   val centerButton = new Button(){
     text = "Click to Kill"

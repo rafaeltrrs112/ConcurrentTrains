@@ -1,6 +1,5 @@
 import java.text.SimpleDateFormat
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.{Date, Calendar}
 
 /**
  */
