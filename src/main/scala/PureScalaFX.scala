@@ -5,6 +5,7 @@
 import javafx.beans.binding.StringBinding
 import javafx.scene.{control => jfxsc, layout => jfxsl}
 import javafx.{event => jfxe, fxml => jfxf}
+
 import scalafx.Includes._
 import scalafx.application.{JFXApp, Platform}
 import scalafx.event.ActionEvent
@@ -13,7 +14,6 @@ import scalafx.scene.Scene
 import scalafx.scene.control.{Button, ComboBox, Label, TextField}
 import scalafx.scene.input.MouseEvent
 import scalafx.scene.layout.{ColumnConstraints, GridPane, Priority}
-import scalafxml.core.macros.sfxml
 
 
 trait UnitConverter{
