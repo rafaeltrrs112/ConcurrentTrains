@@ -1,5 +1,8 @@
 
+import java.beans.EventHandler
 import java.util.concurrent.atomic.AtomicBoolean
+import com.sun.xml.internal.ws.resources.SenderMessages
+
 import scala.collection.parallel.mutable
 import scala.reflect.runtime.universe.typeOf
 import akka.actor._
@@ -15,6 +18,7 @@ import scalafx.application.{JFXApp, Platform}
 import scalafx.beans.binding.StringBinding
 import scalafx.beans.property.IntegerProperty
 import scalafx.collections.ObservableMap
+import scalafx.event.ActionEvent
 import scalafx.scene.Scene
 import scalafx.scene.control.{Button, Label}
 import scalafx.scene.input.MouseEvent
@@ -24,6 +28,7 @@ import scalafx.scene.shape.Circle
 import scalafxml.core.{DependenciesByType, FXMLView}
 import scalafxml.core.macros.sfxml
 
+case class Send()
 case class Number(number : Int)
 case class Job()
 case class Seat(direction : Int, name: String)
@@ -32,10 +37,13 @@ case class Seated(passenger : String)
 case class Batch(batch : scala.collection.mutable.Queue[Seat])
 case class Done(done : Int)
 object Worker{
-  def props(assignedDoor: String, maxOccupancy : Int, direction : Int, label : Label, circle : Circle, countLabel: Label) : Props =
-    Props(new Worker(assignedDoor, maxOccupancy, direction, label, circle, countLabel))
+  def props(assignedDoor: String, maxOccupancy : Int, direction : Int,
+            label : Label, circle : Circle, countLabel: Label,
+             button : Button) : Props =
+    Props(new Worker(assignedDoor, maxOccupancy, direction, label, circle, countLabel, button))
 }
-class Worker(val assignedDoor : String, val maxOccupancy : Int, assignedDirection : Int, label: Label, circle: Circle, countLabel : Label)
+class Worker(val assignedDoor : String, val maxOccupancy : Int, assignedDirection : Int, label: Label, circle: Circle, countLabel : Label,
+              button : Button)
   extends Actor {
 
   val lineQueue = scala.collection.mutable.Queue[Seat]()
@@ -95,6 +103,15 @@ class Worker(val assignedDoor : String, val maxOccupancy : Int, assignedDirectio
 //      Right now the actors cannot stop enable Done message to return to normal functionality
 //      sender ! Done(assignedDirection)
     }
+    case Send =>
+      println("Send")
+      Platform.runLater{
+        if(!onHold.get) {
+          onHold.set(true)
+          goneTime = System.currentTimeMillis() / 1000
+          circle.fill = Color.Red
+        }
+      }
   }
 }
 
@@ -113,10 +130,29 @@ class TrainStation extends Actor{
   //4 and assigns them jobs round robin style
 
   val workerOne = context.actorOf(Worker.props("North", 8, TrainStation.NORTH,
-  View.labelMap(TrainStation.NORTH), View.circleMap(TrainStation.NORTH), View.countMap(TrainStation.NORTH)), "northWorker")
+  View.labelMap(TrainStation.NORTH), View.circleMap(TrainStation.NORTH), View.countMap(TrainStation.NORTH),
+    View.dispatchMap(TrainStation.NORTH)), "northWorker")
 
   val workerTwo = context.actorOf(Worker.props("South", 8, TrainStation.SOUTH,
-  View.labelMap(TrainStation.SOUTH), View.circleMap(TrainStation.SOUTH), View.countMap(TrainStation.SOUTH)),"southWorker")
+  View.labelMap(TrainStation.SOUTH), View.circleMap(TrainStation.SOUTH), View.countMap(TrainStation.SOUTH),
+    View.dispatchMap(TrainStation.SOUTH)), "southWorker")
+
+  val southButton = View.dispatchMap(TrainStation.SOUTH)
+  southButton.setOnAction({
+    (_:ActionEvent) => {
+      workerTwo ! Send()
+    }
+  })
+
+
+  println("Send")
+
+  val northButton = View.dispatchMap(TrainStation.NORTH)
+  northButton.setOnAction({
+    (_:ActionEvent) => {
+      workerOne ! Send()
+    }
+  })
 
   override def receive = {
 
@@ -145,6 +181,7 @@ object View{
   var labelMap = scala.collection.mutable.Map[Int, Label]()
   var circleMap = scala.collection.mutable.Map[Int, Circle]()
   var countMap = scala.collection.mutable.Map[Int, Label]()
+  var dispatchMap = scala.collection.mutable.Map[Int, Button]()
 }
 class Listener extends Actor {
 
@@ -171,6 +208,14 @@ class ConcurrentTrainsPresenter(
                                  private val southStatus : Circle,
                                  private val southCount : Label
                                  ){
+
+  View.labelMap = scala.collection.mutable.Map(TrainStation.NORTH -> northPassenger, TrainStation.SOUTH -> southPassenger)
+  View.circleMap = scala.collection.mutable.Map(TrainStation.NORTH -> northStatus, TrainStation.SOUTH -> southStatus)
+  View.countMap = scala.collection.mutable.Map(TrainStation.NORTH -> northCount, TrainStation.SOUTH -> southCount)
+  View.dispatchMap = scala.collection.mutable.Map(TrainStation.NORTH -> northDispatch, TrainStation.SOUTH -> southDispatch)
+
+  Thread.sleep(4000)
+
   val system = ActorSystem("TrainTest")
   //The listener waits for the message to shut down the whole system
   val listener = system.actorOf(Props(new Listener), name = "Listener")
@@ -178,19 +223,7 @@ class ConcurrentTrainsPresenter(
   val people = scala.collection.mutable.Queue[Seat]()
   val master = system.actorOf(Props(new TrainStation), name = "StationSystem")
 
-//  val centerButton = new Button(){
-//    text = "Click to Kill"
-//    onMouseClicked = (me: MouseEvent) => {
-//      runLater{
-//        println(people.size)
-//        system.shutdown()
-//      }
-//    }
-//  }
-  View.labelMap = scala.collection.mutable.Map(TrainStation.NORTH -> northPassenger, TrainStation.SOUTH -> southPassenger)
-  View.circleMap = scala.collection.mutable.Map(TrainStation.NORTH -> northStatus, TrainStation.SOUTH -> southStatus)
-  View.countMap = scala.collection.mutable.Map(TrainStation.NORTH -> northCount, TrainStation.SOUTH -> southCount)
-  Thread.sleep(2000)
+
   new Thread(){
     override def run(): Unit ={
       while(true){
