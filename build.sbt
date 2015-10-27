@@ -17,5 +17,7 @@ libraryDependencies += "org.scalafx" %% "scalafx" % "8.0.0-R4"
 addCompilerPlugin("org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full)
 
 libraryDependencies += "org.scalafx" %% "scalafxml-core-sfx8" % "0.2.2"
+libraryDependencies += "commons-io" % "commons-io" % "2.4"
+
 
 testOptions += Tests.Argument(TestFrameworks.JUnit, "-v")

@@ -2,29 +2,32 @@
 
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<AnchorPane id="AnchorPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="UnitConverterPresenter">
-  <children>
-    <GridPane layoutX="165.0" layoutY="121.0" prefWidth="246.0">
-      <children>
-        <Label text="Conversion Type:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
-        <Label text="From:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
-        <Label text="To:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
-        <Button alignment="TOP_RIGHT" contentDisplay="LEFT" mnemonicParsing="false" onAction="#onClose" text="Button" GridPane.columnIndex="1" GridPane.halignment="RIGHT" GridPane.rowIndex="3" />
-        <ComboBox fx:id="types" prefWidth="123.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
-        </ComboBox>
-        <TextField fx:id="from" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-        <TextField fx:id="to" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-      </children>
-      <columnConstraints>
-        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-      </columnConstraints>
-      <rowConstraints>
-        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-      </rowConstraints>
-    </GridPane>
-  </children>
+<AnchorPane id="AnchorPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity"
+            prefHeight="400.0" prefWidth="600.0" xmlns:fx="http://javafx.com/fxml/1"
+            xmlns="http://javafx.com/javafx/2.2" fx:controller="UnitConverterPresenter">
+    <children>
+        <GridPane layoutX="165.0" layoutY="121.0" prefWidth="246.0">
+            <children>
+                <Label text="Conversion Type:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                <Label text="From:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                <Label text="To:" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+                <Button alignment="TOP_RIGHT" contentDisplay="LEFT" mnemonicParsing="false" onAction="#onClose"
+                        text="Button" GridPane.columnIndex="1" GridPane.halignment="RIGHT" GridPane.rowIndex="3"/>
+                <ComboBox fx:id="types" prefWidth="123.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                </ComboBox>
+                <TextField fx:id="from" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                <TextField fx:id="to" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+            </children>
+            <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0"/>
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0"/>
+            </columnConstraints>
+            <rowConstraints>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+            </rowConstraints>
+        </GridPane>
+    </children>
 </AnchorPane>

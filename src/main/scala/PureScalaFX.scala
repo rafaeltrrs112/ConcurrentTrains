@@ -2,6 +2,7 @@
  * This is an example application where I use just
  * scalaFX to make a gui.
  */
+
 import javafx.beans.binding.StringBinding
 import javafx.scene.{control => jfxsc, layout => jfxsl}
 import javafx.{event => jfxe, fxml => jfxf}
@@ -16,23 +17,23 @@ import scalafx.scene.input.MouseEvent
 import scalafx.scene.layout.{ColumnConstraints, GridPane, Priority}
 
 
-trait UnitConverter{
-  val description : String
+trait UnitConverter {
+  val description: String
 
   /**
    *
    * @param input
-   *              A string representation of the number due for conversion
+   * A string representation of the number due for conversion
    * @return
-   *         The result of the conversion represented as a string
+   * The result of the conversion represented as a string
    */
-  def run(input: String) : String
+  def run(input: String): String
 
   override def toString = description
 }
 
 object MMtoInches extends UnitConverter {
-  val description : String = "Millimeters to inches"
+  val description: String = "Millimeters to inches"
 
   override def run(input: String): String = {
     try {
@@ -44,29 +45,31 @@ object MMtoInches extends UnitConverter {
 }
 
 object InchesToMM extends UnitConverter {
-  val description : String = "Inches to millimeters"
-  def run(input : String) : String = {
+  val description: String = "Inches to millimeters"
+
+  def run(input: String): String = {
     try {
       (input.toDouble * 25.4).toString
 
     } catch {
-      case ex : Throwable => "Please Enter a Valid Number"
+      case ex: Throwable => "Please Enter a Valid Number"
     }
   }
 }
+
 //Unit converters helper class that contains all the
 //unit converters within it's available converters property
-class UnitConverters(converters : UnitConverter*){
-  val available = List(converters : _*)
+class UnitConverters(converters: UnitConverter*) {
+  val available = List(converters: _*)
 }
 
 //Now let's implement our view using pure scalafx with no GUI helper
 /**
  *
  * @param converters
- *                   Pass the wrapper class for a collection of unit conversions
+ * Pass the wrapper class for a collection of unit conversions
  */
-class PureSCalaFXView(converters : UnitConverters) extends JFXApp.PrimaryStage{
+class PureSCalaFXView(converters: UnitConverters) extends JFXApp.PrimaryStage {
 
   //UI Definition
   title = "Unit Conversion"
@@ -74,7 +77,7 @@ class PureSCalaFXView(converters : UnitConverters) extends JFXApp.PrimaryStage{
   /**
    * combo box containing UnitConverter objects
    */
-  private val types  = new ComboBox[UnitConverter](){
+  private val types = new ComboBox[UnitConverter]() {
     maxWidth = Double.MaxValue
     margin = Insets(3)
   }
@@ -110,36 +113,38 @@ class PureSCalaFXView(converters : UnitConverters) extends JFXApp.PrimaryStage{
       add(from, 1, 1)
       add(to, 1, 2)
 
-      add(new Button{
+      add(new Button {
         text = "Close"
-        onMouseClicked = (_ : MouseEvent) => {Platform.exit()
+        onMouseClicked = (_: MouseEvent) => {
+          Platform.exit()
         }
       }, 1, 3)
 
       //Column constraints are stored in a list. On constraint for each column
       columnConstraints = List(
-      new ColumnConstraints {
-        halignment = HPos.LEFT
-        hgrow = Priority.SOMETIMES
-        margin = Insets(5)
-      },
-      new ColumnConstraints{
-        halignment = HPos.RIGHT
-        hgrow = Priority.ALWAYS
-        margin = Insets(5)
-      }
+        new ColumnConstraints {
+          halignment = HPos.LEFT
+          hgrow = Priority.SOMETIMES
+          margin = Insets(5)
+        },
+        new ColumnConstraints {
+          halignment = HPos.RIGHT
+          hgrow = Priority.ALWAYS
+          margin = Insets(5)
+        }
       )
     }
   }
 }
+
 class RawUnitConverterPresenter(
-                               private val from : TextField,
-                               private val to: TextField,
-                               private val types: ComboBox[UnitConverter],
-                               private val converters : UnitConverters){
+                                 private val from: TextField,
+                                 private val to: TextField,
+                                 private val types: ComboBox[UnitConverter],
+                                 private val converters: UnitConverters) {
 
   //Filling the combo box
-  for(converter <- converters.available){
+  for (converter <- converters.available) {
     types += converter
   }
   types.getSelectionModel.selectFirst()
@@ -148,11 +153,12 @@ class RawUnitConverterPresenter(
   //The dependencies are observed when computeValue is called which is all the time.
   to.text <== new StringBinding {
     bind(from.text.delegate, types.getSelectionModel.selectedItemProperty)
+
     def computeValue() = types.getSelectionModel.getSelectedItem.run(from.text.value)
   }
 
 
-  def onClose(event : ActionEvent): Unit ={
+  def onClose(event: ActionEvent): Unit = {
     Platform.exit()
   }
 }

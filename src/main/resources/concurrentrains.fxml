@@ -8,47 +8,57 @@
 <?import javafx.scene.paint.*?>
 <?import javafx.scene.shape.*?>
 
-<AnchorPane id="AnchorPane" maxHeight="-1.0" maxWidth="-1.0" minHeight="-1.0" minWidth="-1.0" prefHeight="-1.0" prefWidth="1036.5" scaleX="1.0" scaleY="1.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="ConcurrentTrainsPresenter">
-  <children>
-    <GridPane id="GridPane" layoutX="78.0" layoutY="52.0" prefHeight="416.0" prefWidth="850.0">
-      <children>
-        <Label text="North" GridPane.columnIndex="0" GridPane.halignment="CENTER" GridPane.rowIndex="0" />
-        <Label text="South" GridPane.columnIndex="5" GridPane.halignment="CENTER" GridPane.rowIndex="0" />
-        <Label fx:id="northPassenger" text="Boarding" GridPane.columnIndex="0" GridPane.halignment="CENTER" GridPane.rowIndex="2" />
-        <Button fx:id="northDispatch" mnemonicParsing="false" text="Dispatch NORTH" GridPane.columnIndex="0" GridPane.halignment="CENTER" GridPane.rowIndex="3" />
-        <Button fx:id="southDispatch" mnemonicParsing="false" text="Dispatch SOUTH" GridPane.columnIndex="5" GridPane.halignment="CENTER" GridPane.rowIndex="3" />
-        <Circle fx:id="northStatus" fill="DODGERBLUE" radius="42.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="0" GridPane.halignment="CENTER" GridPane.rowIndex="1">
-          <GridPane.margin>
-            <Insets />
-          </GridPane.margin>
-        </Circle>
-        <Circle fx:id="southStatus" fill="DODGERBLUE" radius="42.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="5" GridPane.halignment="CENTER" GridPane.rowIndex="1" />
-        <Label fx:id="northCount" prefWidth="11.5" text="0" GridPane.columnIndex="0" GridPane.halignment="LEFT" GridPane.rowIndex="1">
-          <GridPane.margin>
-            <Insets left="10.0" />
-          </GridPane.margin>
-        </Label>
-        <Label fx:id="southCount" text="0" GridPane.columnIndex="5" GridPane.halignment="RIGHT" GridPane.rowIndex="1">
-          <GridPane.margin>
-            <Insets right="12.0" />
-          </GridPane.margin>
-        </Label>
-        <Label fx:id="southPassenger" text="Boarding" GridPane.columnIndex="5" GridPane.halignment="CENTER" GridPane.rowIndex="2" />
-      </children>
-      <columnConstraints>
-        <ColumnConstraints hgrow="SOMETIMES" maxWidth="214.0" minWidth="10.0" prefWidth="214.0" />
-        <ColumnConstraints hgrow="SOMETIMES" maxWidth="116.0" minWidth="10.0" prefWidth="116.0" />
-        <ColumnConstraints hgrow="SOMETIMES" maxWidth="115.0" minWidth="10.0" prefWidth="80.0" />
-        <ColumnConstraints hgrow="SOMETIMES" maxWidth="129.5" minWidth="10.0" prefWidth="86.0" />
-        <ColumnConstraints hgrow="SOMETIMES" maxWidth="142.0" minWidth="10.0" prefWidth="130.5" />
-        <ColumnConstraints hgrow="SOMETIMES" maxWidth="272.0" minWidth="10.0" prefWidth="223.5" />
-      </columnConstraints>
-      <rowConstraints>
-        <RowConstraints maxHeight="86.0" minHeight="10.0" prefHeight="85.5" vgrow="SOMETIMES" />
-        <RowConstraints maxHeight="154.5" minHeight="10.0" prefHeight="154.5" vgrow="SOMETIMES" />
-        <RowConstraints maxHeight="86.0" minHeight="10.0" prefHeight="86.0" vgrow="SOMETIMES" />
-        <RowConstraints maxHeight="90.0" minHeight="10.0" prefHeight="90.0" vgrow="SOMETIMES" />
-      </rowConstraints>
-    </GridPane>
-  </children>
+<AnchorPane id="AnchorPane" maxHeight="-1.0" maxWidth="-1.0" minHeight="-1.0" minWidth="-1.0" prefHeight="-1.0"
+            prefWidth="1036.5" scaleX="1.0" scaleY="1.0" xmlns:fx="http://javafx.com/fxml/1"
+            xmlns="http://javafx.com/javafx/2.2" fx:controller="ConcurrentTrainsPresenter">
+    <children>
+        <GridPane id="GridPane" layoutX="78.0" layoutY="52.0" prefHeight="416.0" prefWidth="850.0">
+            <children>
+                <Label text="North" GridPane.columnIndex="0" GridPane.halignment="CENTER" GridPane.rowIndex="0"/>
+                <Label text="South" GridPane.columnIndex="5" GridPane.halignment="CENTER" GridPane.rowIndex="0"/>
+                <Label fx:id="northPassenger" text="Boarding" GridPane.columnIndex="0" GridPane.halignment="CENTER"
+                       GridPane.rowIndex="2"/>
+                <Button fx:id="northDispatch" mnemonicParsing="false" text="Dispatch NORTH" GridPane.columnIndex="0"
+                        GridPane.halignment="CENTER" GridPane.rowIndex="3"/>
+                <Button fx:id="southDispatch" mnemonicParsing="false" text="Dispatch SOUTH" GridPane.columnIndex="5"
+                        GridPane.halignment="CENTER" GridPane.rowIndex="3"/>
+                <Circle fx:id="northStatus" fill="DODGERBLUE" radius="42.0" stroke="BLACK" strokeType="INSIDE"
+                        GridPane.columnIndex="0" GridPane.halignment="CENTER" GridPane.rowIndex="1">
+                    <GridPane.margin>
+                        <Insets/>
+                    </GridPane.margin>
+                </Circle>
+                <Circle fx:id="southStatus" fill="DODGERBLUE" radius="42.0" stroke="BLACK" strokeType="INSIDE"
+                        GridPane.columnIndex="5" GridPane.halignment="CENTER" GridPane.rowIndex="1"/>
+                <Label fx:id="northCount" prefWidth="11.5" text="0" GridPane.columnIndex="0" GridPane.halignment="LEFT"
+                       GridPane.rowIndex="1">
+                    <GridPane.margin>
+                        <Insets left="10.0"/>
+                    </GridPane.margin>
+                </Label>
+                <Label fx:id="southCount" text="0" GridPane.columnIndex="5" GridPane.halignment="RIGHT"
+                       GridPane.rowIndex="1">
+                    <GridPane.margin>
+                        <Insets right="12.0"/>
+                    </GridPane.margin>
+                </Label>
+                <Label fx:id="southPassenger" text="Boarding" GridPane.columnIndex="5" GridPane.halignment="CENTER"
+                       GridPane.rowIndex="2"/>
+            </children>
+            <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="214.0" minWidth="10.0" prefWidth="214.0"/>
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="116.0" minWidth="10.0" prefWidth="116.0"/>
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="115.0" minWidth="10.0" prefWidth="80.0"/>
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="129.5" minWidth="10.0" prefWidth="86.0"/>
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="142.0" minWidth="10.0" prefWidth="130.5"/>
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="272.0" minWidth="10.0" prefWidth="223.5"/>
+            </columnConstraints>
+            <rowConstraints>
+                <RowConstraints maxHeight="86.0" minHeight="10.0" prefHeight="85.5" vgrow="SOMETIMES"/>
+                <RowConstraints maxHeight="154.5" minHeight="10.0" prefHeight="154.5" vgrow="SOMETIMES"/>
+                <RowConstraints maxHeight="86.0" minHeight="10.0" prefHeight="86.0" vgrow="SOMETIMES"/>
+                <RowConstraints maxHeight="90.0" minHeight="10.0" prefHeight="90.0" vgrow="SOMETIMES"/>
+            </rowConstraints>
+        </GridPane>
+    </children>
 </AnchorPane>
