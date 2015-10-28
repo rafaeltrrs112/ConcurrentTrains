@@ -22,4 +22,5 @@ object utils{
     println(Thread.currentThread().getName + " " + s)
   }
 
+  def randomNum(num : Int) : Int = scala.util.Random.nextInt(num)
 }

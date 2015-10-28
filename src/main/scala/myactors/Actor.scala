@@ -25,6 +25,7 @@ trait Actor {
       }
     }
   }
+
   logger.start()
 
   def onReceive(message : ActorMessage) : Unit

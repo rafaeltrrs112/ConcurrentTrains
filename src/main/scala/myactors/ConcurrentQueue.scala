@@ -11,6 +11,16 @@ import java.util.concurrent.atomic.AtomicReference
  *
  * MPMC : Multi-producer, multi-consumer queue.
  */
+object ConcurrentQueue {
+  def apply[T]() : ConcurrentQueue[T] = new ConcurrentQueue[T]()
+  def apply[T](e : T*) : ConcurrentQueue[T] = {
+    val q  = new ConcurrentQueue[T]()
+    for(element <- e){
+      q.enqueue(element)
+    }
+    q
+  }
+}
 class ConcurrentQueue[T]{
   val dummy : Node[T] = new Node[T](next = null)
   val head : AtomicReference[Node[T]] = new AtomicReference[Node[T]](dummy)
@@ -57,7 +67,7 @@ class ConcurrentQueue[T]{
       /*
        * If the valueNode is not null then set it's value to null to keep it dummy.
        * */
-      if(valueNode != null) valueNode.value = null
+      if(valueNode != null) valueNode.value = None
 
       /*
        * Return an option of the value.
