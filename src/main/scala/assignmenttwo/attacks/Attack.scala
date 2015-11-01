@@ -1,23 +1,46 @@
 package assignmenttwo.attacks
 
-import myactors.utils
-
-import scala.util
-import scala.util.Random
 /**
- *
+ * A trait for an attack containing a damage property.
  */
 sealed trait Attack {
   val damage : Int
 }
 
+/**
+ * A water attack.
+ * @param damage
+ *               The amount of damage dealt by this attack.
+ */
 case class Water(override val damage : Int) extends Attack
+/**
+ * A fire attack.
+ * @param damage
+ *               The amount of damage dealt by this attack.
+ */
 case class Fire(override val damage : Int) extends Attack
+/**
+ * A wood attack.
+ * @param damage
+ *               The amount of damage dealt by this attack.
+ */
 case class Wood(override val damage : Int) extends Attack
+
+/**
+ * The electricity attack.
+ * @param damage
+ *             The amount of damage dealt by this attack.
+ */
 case class Electricity(override val damage : Int) extends Attack
 
-trait TypedPokemon{
-  def amAlive : Boolean = healthPoints > 0
+trait TypedPokemon {
+  def amAlive : Boolean = if(healthPoints > 0){
+    true
+  }
+  else {
+    healthPoints = 0
+    false
+  }
   def willSurvive(dmg : Int) : Boolean = healthPoints - dmg > 0
   val attack : Int
   var healthPoints : Int
@@ -54,7 +77,7 @@ trait FireType extends TypedPokemon{
   }
 }
 
-trait WoodType extends TypedPokemon{
+trait WoodType extends TypedPokemon {
   var healthPoints : Int
   def attackBack : Attack = Wood(scala.util.Random.nextInt(attack))
   def receiveDamage(attack : Attack) : Unit = {

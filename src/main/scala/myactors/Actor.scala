@@ -1,9 +1,5 @@
 package myactors
 
-/**
- * An actor trait with only two abstract properties :
- * it's name, it's
- */
 trait Actor {
   val name : String
   private val innerQueue = new ConcurrentQueue[ActorMessage]()
