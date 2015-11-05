@@ -39,7 +39,6 @@ object Worker {
 }
 
 /**
- *
  * @param assignedDoor
  * Assigned door string for printing out messages on the console
  * @param maxOccupancy

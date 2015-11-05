@@ -18,6 +18,7 @@ addCompilerPlugin("org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.fu
 
 libraryDependencies += "org.scalafx" %% "scalafxml-core-sfx8" % "0.2.2"
 libraryDependencies += "commons-io" % "commons-io" % "2.4"
-
-
+enablePlugins(JmhPlugin)
 testOptions += Tests.Argument(TestFrameworks.JUnit, "-v")
+
+

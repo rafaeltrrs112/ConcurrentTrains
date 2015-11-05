@@ -7,10 +7,8 @@ import java.util.concurrent.LinkedBlockingDeque
  */
 object CollectionsIterators extends App {
   val queue = new LinkedBlockingDeque[String]()
-
   //Create a queue with 5500 elements
   for (i <- 1 to 5500) queue.offer(i.toString)
-
   //Concurrently start printing elements from the queue in the same order
   //the were entered. This is happening at the same time as when the main
   //thread is removing elements off the queue. The result of this is

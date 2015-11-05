@@ -28,8 +28,10 @@ abstract class Pokemon(override val name : String, override var healthPoints : I
      "Name: " + name + " HP: " + healthPoints
    }
   def updateBar() : Unit = {
-    println(healthPoints.toDouble / startingHealth)
-    progressBar.progress.set(healthPoints.toDouble / startingHealth.toDouble)
+    if(progressBar != null){
+      println(healthPoints.toDouble / startingHealth)
+      progressBar.progress.set(healthPoints.toDouble / startingHealth.toDouble)
+    }
   }
 }
 
