@@ -1,17 +1,25 @@
 package assignment3
 
-import org.gnome.gdk.{EventButton, RGBA, Event}
-import org.gnome.gtk._
-import java.awt.Point
-import org.gnome.pango.FontDescription
-import sun.awt.FontDescriptor
+import java.text.DecimalFormat
+import java.util.concurrent.atomic.AtomicInteger
 
+import org.gnome.gdk.{EventButton, RGBA, Event}
+import org.gnome.gtk.{Widget, Fixed, Gtk}
+import org.gnome.pango.FontDescription
+import org.gnome.gtk.{Window, ToggleButton, Label}
+import org.gnome.gtk.StateFlags
+import org.gnome.gtk.WindowPosition
+import scala.collection.parallel.ParSeq
+import scala.concurrent._
+import ExecutionContext.Implicits.global
 import scala.collection.mutable._
-import scala.util.Random
+import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+import scala.util.{Failure, Success, Try, Random}
 
 object Run extends App {
   Gtk.init(args)
-  new MetalCells(5, 10, (70, 70))
+  new MetalCells(5, 10, (100, 100))
 }
 
 trait Metal{
@@ -22,6 +30,7 @@ trait Metal{
 case class Adamantium(override val percentage : Double) extends Metal {
   override val thermalConstant : Double = 0.75
 }
+
 case class Vibranium(override val percentage : Double) extends Metal{
   override val thermalConstant : Double = 1.0
 }
@@ -29,6 +38,8 @@ case class Vibranium(override val percentage : Double) extends Metal{
 case class Chromium(override val percentage : Double) extends Metal {
   override val thermalConstant : Double = 1.25
 }
+
+
 
 case class Composition(adamantium : Adamantium, vibranium: Vibranium, chromium : Chromium)
 
@@ -62,12 +73,17 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
   val RIGHT_BORDER = "rightBorder"
   val UPPER_BORDER = "topBorder"
   val LOWER_BORDER = "bottomBorder"
+  val MAX_TEMPERATURE : Double = 9000.0
+  val S_VALUE = MAX_TEMPERATURE
+  val T_VALUE = 112
+  val MAX_RATIO : Double = 255.0 / MAX_TEMPERATURE
+  val formatter = new DecimalFormat("00.00")
 
-  def initUI {
+  def initUI() {
     connect(new Window.DeleteEvent() {
       def onDeleteEvent(source: Widget, event: Event): Boolean = {
-        Gtk.mainQuit
-        return false
+        Gtk.mainQuit()
+        false
       }
     })
 
@@ -83,12 +99,12 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
       newRow ++= (for(column <- 0 to numberOfColumns - 1) yield {
         columnPos += CELL_WIDTH + CELL_PADDING
 
-        val toButton = (width : Int, height: Int, location: Location) => (color : RGBA) => Cell(width, height, location, color, Composition.randomComposition, 0)
+        val toButton = (width : Int, height: Int, location: Location) => (color : RGBA) => Cell(width, height, location, color, Composition.randomComposition, 10)
 
         val preCell = toButton(CELL_WIDTH, CELL_HEIGHT, Location(column, row))
         val cellLocation = Location(column, row)
 
-        val cellButton = {
+        var cellButton = {
           if (isCorner(cellLocation)) {
             preCell(RGBA.RED)
           }
@@ -98,6 +114,7 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
             preCell(RGBA.BLUE)
           }
         }
+        cellButton = preCell(new RGBA(0, 0, 0, 0.5))
 
 
         fixed.put(cellButton, columnPos, rowPos)
@@ -105,8 +122,12 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
         cellButton.setLabel(cellButton.temperature.toString)
         cellButton.overrideFont(new FontDescription("white, Monospace, 12"))
         cellButton.setSizeRequest(CELL_WIDTH, CELL_HEIGHT)
+
         cellButton.connect(this)
 
+        setBorderType(cellButton)
+
+        println(cellButton)
         cellButton
       })
 
@@ -129,20 +150,7 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
 
 
   def onToggled(toggleButton: ToggleButton) {
-    toggleButton match {
-      case cell : Cell => {
-        println(cell)
-        if(toggleButton.getActive) {
-          getNeighborIndices(cell).foreach((columnRow) => {
-            TABLE(columnRow.row)(columnRow.column).overrideBackground(StateFlags.NORMAL, RGBA.BLACK)
-          })
-        } else {
-          getNeighborIndices(cell).foreach((columnRow) => {
-            TABLE(columnRow.row)(columnRow.column).resetColor()
-          })
-        }
-      }
-    }
+    testRun()
   }
 
   case class Location(column : Int, row : Int)
@@ -178,12 +186,14 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
     if(this.isCorner(cell.location)){
       cell.location match {
         case Location(0, 0) => {
-          cell.temperature = 112
+          cell.prev = 112.0
+          cell._temperature = 112.0
           UPPER_LEFT
         }
         case Location(0, `rowEnd`) => LOWER_LEFT
         case Location(`columnEnd`, `rowEnd`) => {
-          cell.temperature = 421
+          cell._temperature = 421.0
+          cell.prev = 421.0
           LOWER_RIGHT
         }
         case Location(`columnEnd`, 0) => UPPER_RIGHT
@@ -205,9 +215,9 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
   def getNeighborIndices(cell : Cell) : List[Location] = {
     cell.cellType match {
       case UPPER_LEFT => List[Location](
-        Location(cell.location.column + 1, cell.location.row),
-        Location(cell.location.column, cell.location.row + 1),
-        Location(cell.location.column + 1, cell.location.row + 1)
+//        Location(cell.location.column + 1, cell.location.row),
+//        Location(cell.location.column, cell.location.row + 1),
+//        Location(cell.location.column + 1, cell.location.row + 1)
       )
       case LOWER_LEFT => List[Location](
         Location(cell.location.column + 1, cell.location.row),
@@ -220,9 +230,9 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
         Location(cell.location.column - 1, cell.location.row + 1)
       )
       case LOWER_RIGHT => List[Location](
-        Location(cell.location.column - 1, cell.location.row),
-        Location(cell.location.column, cell.location.row - 1),
-        Location(cell.location.column - 1, cell.location.row - 1)
+//        Location(cell.location.column - 1, cell.location.row),
+//        Location(cell.location.column, cell.location.row - 1),
+//        Location(cell.location.column - 1, cell.location.row - 1)
       )
 
       case LEFT_BORDER => List[Location](
@@ -266,12 +276,15 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
     }
   }
 
-  case class Cell(width : Int, height : Int, location : Location, defaultColor : RGBA, composition: Composition, var temperature : Long) extends ToggleButton {
+  case class Cell(width : Int, height : Int, location : Location, defaultColor : RGBA, composition: Composition, var _temperature : Double) extends ToggleButton {
     var cellType = setBorderType(this)
     lazy val neighbors : List[Cell] = getNeighborIndices(this).map((location) => TABLE(location.row)(location.column))
 
+    var prev = _temperature
+
     setSizeRequest(width, height)
     overrideBackground(StateFlags.NORMAL, defaultColor)
+    setLabel(_temperature.toString)
 
     override def toString : String = {
       s"Cell(width : ${this.width}, height : ${this.height}, location : ${this.location}, defaultColor : ${this.defaultColor}, composition: ${this.composition}, temperature : ${this.temperature}, cellType : ${this.cellType})"
@@ -281,16 +294,129 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
       overrideBackground(StateFlags.NORMAL, defaultColor)
     }
 
+    def color_=(bgColor : RGBA) = {
+      this.overrideBackground(StateFlags.NORMAL, bgColor)
+    }
+
+    //The temperature always refers to label's temperature which holds the previous temperature.
+    def temperature : Double = prev
+    //the setter for temperature sets the actual temperature.
+    def temperature_=(temp : Double) = {
+      _temperature = temp
+    }
+    //the setter for the label.
+    def updateCell = {
+      setLabel(formatter.format(_temperature))
+      prev = _temperature
+      overrideBackground(StateFlags.NORMAL, new RGBA(_temperature * MAX_RATIO, 0, 0, 1.0))
+    }
+  }
+
+  def vibraniumTemp(cell : Cell) :  Double = {
+    val currentTemp: Double = cell.temperature
+    val vibPercent: Double = cell.composition.vibranium.percentage
+    currentTemp * vibPercent
+  }
+
+  def adamantiumTemp(cell : Cell) : Double = {
+    val currentTemp: Double = cell.temperature
+    val adaPercent: Double = cell.composition.adamantium.percentage
+    currentTemp * adaPercent
+
+  }
+
+  def chromiumTemp(cell : Cell) : Double = {
+    val currentTemp: Double = cell.temperature
+    val croPercent: Double = cell.composition.chromium.percentage
+    currentTemp * croPercent
+  }
+
+  def adamantiumTotal(cell : Cell) : Future[Double] = {
+    val adaCountList : List[Future[Double]] = cell.neighbors.map {
+      (neighbor) => Future[Double]{
+        adamantiumTemp(neighbor)
+      }
+    }
+    val sumFuture : Future[List[Double]] = Future sequence adaCountList
+    val result = for {
+      fin <- sumFuture
+    } yield cell.composition.adamantium.thermalConstant * (fin.sum / cell.neighbors.size)
+    result
+  }
+
+  def chromiumTotal(cell : Cell) : Future[Double] = {
+    val croCountList : List[Future[Double]] = cell.neighbors.map {
+      (neighbor) => Future[Double]{
+        chromiumTemp(neighbor)
+      }
+    }
+    val sumFuture : Future[List[Double]] = Future sequence croCountList
+    val result = for {
+      fin <- sumFuture
+    } yield cell.composition.chromium.thermalConstant * (fin.sum / cell.neighbors.size)
+    result
+  }
+
+  def vibraniumTotal(cell : Cell) : Future[Double] = {
+    val ADA_CONSTANT : Double = cell.composition.vibranium.thermalConstant
+    val vibraCountList : List[Future[Double]] = cell.neighbors.map {
+      (neighbor) => Future[Double]{
+        vibraniumTemp(neighbor)
+      }
+    }
+    val sumFuture : Future[List[Double]] = Future sequence vibraCountList
+    val result = for {
+      fin <- sumFuture
+    } yield cell.composition.vibranium.thermalConstant * (fin.sum / cell.neighbors.size)
+    result
+  }
+
+  def testRun(): Unit = {
+      val totalFuture = TABLE.map {
+        val count = new AtomicInteger(0)
+        _.map {
+          (cell) => if(!(cell.cellType.equals(UPPER_LEFT) || cell.cellType.equals(LOWER_RIGHT))) {
+            {
+              Future {
+                val vibFuture: Future[Double] = vibraniumTotal(cell)
+                val croFuture: Future[Double] = chromiumTotal(cell)
+                val adaFuture: Future[Double] = adamantiumTotal(cell)
+                val newTemp = for {
+                  vib <- vibFuture
+                  cro <- croFuture
+                  ada <- adaFuture
+                } yield vib + cro + ada
+                newTemp foreach {
+                  case temperature => {
+                    println(s"New temperature ${temperature}, Old temperature ${cell.temperature} ${temperature > cell.temperature}")
+                    cell.temperature = temperature
+                    if (count.incrementAndGet() == (numberOfColumns * numberOfRows) - 2) {
+                      println("****LAST ONE *******")
+                      TABLE.foreach {
+                        _.filter ((cell) => !(cell.cellType.equals(UPPER_LEFT) || cell.cellType.equals(LOWER_RIGHT))) foreach {
+                          _.updateCell
+                        }
+                      }
+                    }
+                  }
+                }
+                newTemp
+              }
+            }
+          } else {
+            println("Corner temp " + cell.temperature)
+          }
+        }
+      }
   }
 
 
 
-
-
   setTitle("ToggleButton")
-  initUI
+  initUI()
   setPosition(WindowPosition.CENTER)
   setSizeRequest(350, 220)
   showAll()
   Gtk.main()
+
 }
