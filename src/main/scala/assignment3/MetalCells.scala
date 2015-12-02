@@ -19,7 +19,7 @@ import scala.util.{Failure, Success, Try, Random}
 
 object Run extends App {
   Gtk.init(args)
-  new MetalCells(5, 10, (100, 100))
+  new MetalCells(100, 100, (20, 20))
 }
 
 trait Metal{
@@ -58,7 +58,7 @@ object Composition {
 class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (Int, Int)) extends Window with ToggleButton.Toggled {
   val CELL_WIDTH = cellSize._1
   val CELL_HEIGHT = cellSize._2
-  val CELL_PADDING = 5
+  val CELL_PADDING = 1
   val TABLE = ListBuffer[ListBuffer[Cell]]()
 
   val UPPER_LEFT = "upperLeft"
@@ -73,11 +73,12 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
   val RIGHT_BORDER = "rightBorder"
   val UPPER_BORDER = "topBorder"
   val LOWER_BORDER = "bottomBorder"
-  val MAX_TEMPERATURE : Double = 9000.0
+
+  val MAX_TEMPERATURE : Double = 10000.0
   val S_VALUE = MAX_TEMPERATURE
   val T_VALUE = 112
   val MAX_RATIO : Double = 255.0 / MAX_TEMPERATURE
-  val formatter = new DecimalFormat("00.00")
+  val formatter = new DecimalFormat("##")
 
   def initUI() {
     connect(new Window.DeleteEvent() {
@@ -94,7 +95,7 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
     TABLE ++= (for(row <- 0 to numberOfRows - 1) yield {
       val newRow  = ListBuffer[Cell]()
       rowPos += CELL_WIDTH + CELL_PADDING
-      var columnPos = 60
+      var columnPos = 0
 
       newRow ++= (for(column <- 0 to numberOfColumns - 1) yield {
         columnPos += CELL_WIDTH + CELL_PADDING
@@ -102,24 +103,12 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
         val toButton = (width : Int, height: Int, location: Location) => (color : RGBA) => Cell(width, height, location, color, Composition.randomComposition, 10)
 
         val preCell = toButton(CELL_WIDTH, CELL_HEIGHT, Location(column, row))
-        val cellLocation = Location(column, row)
 
-        var cellButton = {
-          if (isCorner(cellLocation)) {
-            preCell(RGBA.RED)
-          }
-          else if (isBorder(cellLocation)) {
-            preCell(RGBA.GREEN)
-          } else {
-            preCell(RGBA.BLUE)
-          }
-        }
-        cellButton = preCell(new RGBA(0, 0, 0, 0.5))
-
+        val cellButton = preCell(RGBA.BLACK)
 
         fixed.put(cellButton, columnPos, rowPos)
 
-        cellButton.setLabel(cellButton.temperature.toString)
+        //cellButton.setLabel(cellButton.temperature.toString)
         cellButton.overrideFont(new FontDescription("white, Monospace, 12"))
         cellButton.setSizeRequest(CELL_WIDTH, CELL_HEIGHT)
 
@@ -127,14 +116,14 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
 
         setBorderType(cellButton)
 
-        println(cellButton)
+        //println(cellButton)
         cellButton
       })
 
       newRow
     })
 
-    fixed.put(new Label("Metal Cells"), 20, 20)
+    //fixed.put(new Label("Metal Cells"), 20, 20)
     add(fixed)
   }
 
@@ -186,14 +175,14 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
     if(this.isCorner(cell.location)){
       cell.location match {
         case Location(0, 0) => {
-          cell.prev = 112.0
-          cell._temperature = 112.0
+          cell.prev = 500.0
+          cell._temperature = 500.0
           UPPER_LEFT
         }
         case Location(0, `rowEnd`) => LOWER_LEFT
         case Location(`columnEnd`, `rowEnd`) => {
-          cell._temperature = 421.0
-          cell.prev = 421.0
+          cell._temperature = 1000
+          cell.prev = 1000
           LOWER_RIGHT
         }
         case Location(`columnEnd`, 0) => UPPER_RIGHT
@@ -284,7 +273,7 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
 
     setSizeRequest(width, height)
     overrideBackground(StateFlags.NORMAL, defaultColor)
-    setLabel(_temperature.toString)
+    //setLabel(_temperature.toString)
 
     override def toString : String = {
       s"Cell(width : ${this.width}, height : ${this.height}, location : ${this.location}, defaultColor : ${this.defaultColor}, composition: ${this.composition}, temperature : ${this.temperature}, cellType : ${this.cellType})"
@@ -300,16 +289,20 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
 
     //The temperature always refers to label's temperature which holds the previous temperature.
     def temperature : Double = prev
+
     //the setter for temperature sets the actual temperature.
     def temperature_=(temp : Double) = {
       _temperature = temp
     }
+
     //the setter for the label.
     def updateCell = {
-      setLabel(formatter.format(_temperature))
+      //setLabel(formatter.format(_temperature))
       prev = _temperature
+      //println(_temperature * MAX_RATIO)
       overrideBackground(StateFlags.NORMAL, new RGBA(_temperature * MAX_RATIO, 0, 0, 1.0))
     }
+
   }
 
   def vibraniumTemp(cell : Cell) :  Double = {
@@ -340,7 +333,7 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
     val sumFuture : Future[List[Double]] = Future sequence adaCountList
     val result = for {
       fin <- sumFuture
-    } yield cell.composition.adamantium.thermalConstant * (fin.sum / cell.neighbors.size)
+    } yield (cell.composition.adamantium.thermalConstant * fin.sum) / cell.neighbors.size
     result
   }
 
@@ -353,12 +346,11 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
     val sumFuture : Future[List[Double]] = Future sequence croCountList
     val result = for {
       fin <- sumFuture
-    } yield cell.composition.chromium.thermalConstant * (fin.sum / cell.neighbors.size)
+    } yield (cell.composition.chromium.thermalConstant * fin.sum) / cell.neighbors.size
     result
   }
 
   def vibraniumTotal(cell : Cell) : Future[Double] = {
-    val ADA_CONSTANT : Double = cell.composition.vibranium.thermalConstant
     val vibraCountList : List[Future[Double]] = cell.neighbors.map {
       (neighbor) => Future[Double]{
         vibraniumTemp(neighbor)
@@ -367,7 +359,7 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
     val sumFuture : Future[List[Double]] = Future sequence vibraCountList
     val result = for {
       fin <- sumFuture
-    } yield cell.composition.vibranium.thermalConstant * (fin.sum / cell.neighbors.size)
+    } yield (cell.composition.vibranium.thermalConstant * fin.sum) / cell.neighbors.size
     result
   }
 
@@ -381,22 +373,25 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
                 val vibFuture: Future[Double] = vibraniumTotal(cell)
                 val croFuture: Future[Double] = chromiumTotal(cell)
                 val adaFuture: Future[Double] = adamantiumTotal(cell)
-                val newTemp = for {
+
+                val newTemp : Future[Double] = for {
                   vib <- vibFuture
                   cro <- croFuture
                   ada <- adaFuture
                 } yield vib + cro + ada
-                newTemp foreach {
-                  case temperature => {
-                    println(s"New temperature ${temperature}, Old temperature ${cell.temperature} ${temperature > cell.temperature}")
+
+                newTemp onComplete {
+                  case Success(temperature) => {
+                    //println(s"New temperature ${temperature}, Old temperature ${cell.temperature} ${temperature > cell.temperature}")
                     cell.temperature = temperature
                     if (count.incrementAndGet() == (numberOfColumns * numberOfRows) - 2) {
-                      println("****LAST ONE *******")
-                      TABLE.foreach {
-                        _.filter ((cell) => !(cell.cellType.equals(UPPER_LEFT) || cell.cellType.equals(LOWER_RIGHT))) foreach {
-                          _.updateCell
+                      //println("****LAST ONE *******")
+                      TABLE foreach {
+                        _ filter ((cell) => !(cell.cellType.equals(UPPER_LEFT) || cell.cellType.equals(LOWER_RIGHT))) foreach {
+                          _ updateCell
                         }
                       }
+                      testRun()
                     }
                   }
                 }
@@ -404,7 +399,7 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
               }
             }
           } else {
-            println("Corner temp " + cell.temperature)
+            cell.updateCell
           }
         }
       }
