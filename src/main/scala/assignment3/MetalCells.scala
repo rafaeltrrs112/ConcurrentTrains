@@ -9,6 +9,7 @@ import org.gnome.pango.FontDescription
 import org.gnome.gtk.{Window, ToggleButton, Label}
 import org.gnome.gtk.StateFlags
 import org.gnome.gtk.WindowPosition
+import scala.annotation.tailrec
 import scala.collection.parallel.ParSeq
 import scala.concurrent._
 import ExecutionContext.Implicits.global
@@ -17,10 +18,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success, Try, Random}
 
-object Run extends App {
-  Gtk.init(args)
-  new MetalCells(100, 100, (20, 20))
-}
+
 
 trait Metal{
   val percentage : Double
@@ -56,6 +54,7 @@ object Composition {
 }
 
 class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (Int, Int)) extends Window with ToggleButton.Toggled {
+  val EPSILON : Double = .01
   val CELL_WIDTH = cellSize._1
   val CELL_HEIGHT = cellSize._2
   val CELL_PADDING = 1
@@ -90,7 +89,7 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
 
     val fixed: Fixed = new Fixed
 
-    var rowPos : Int = 20
+    var rowPos : Int = CELL_WIDTH + CELL_PADDING
 
     TABLE ++= (for(row <- 0 to numberOfRows - 1) yield {
       val newRow  = ListBuffer[Cell]()
@@ -100,7 +99,7 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
       newRow ++= (for(column <- 0 to numberOfColumns - 1) yield {
         columnPos += CELL_WIDTH + CELL_PADDING
 
-        val toButton = (width : Int, height: Int, location: Location) => (color : RGBA) => Cell(width, height, location, color, Composition.randomComposition, 10)
+        val toButton = (width : Int, height: Int, location: Location) => (color : RGBA) => Cell(width, height, location, color, Composition.randomComposition, 0)
 
         val preCell = toButton(CELL_WIDTH, CELL_HEIGHT, Location(column, row))
 
@@ -108,7 +107,7 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
 
         fixed.put(cellButton, columnPos, rowPos)
 
-        //cellButton.setLabel(cellButton.temperature.toString)
+
         cellButton.overrideFont(new FontDescription("white, Monospace, 12"))
         cellButton.setSizeRequest(CELL_WIDTH, CELL_HEIGHT)
 
@@ -116,11 +115,11 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
 
         setBorderType(cellButton)
 
-        //println(cellButton)
         cellButton
       })
 
       newRow
+
     })
 
     //fixed.put(new Label("Metal Cells"), 20, 20)
@@ -273,7 +272,6 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
 
     setSizeRequest(width, height)
     overrideBackground(StateFlags.NORMAL, defaultColor)
-    //setLabel(_temperature.toString)
 
     override def toString : String = {
       s"Cell(width : ${this.width}, height : ${this.height}, location : ${this.location}, defaultColor : ${this.defaultColor}, composition: ${this.composition}, temperature : ${this.temperature}, cellType : ${this.cellType})"
@@ -296,11 +294,19 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
     }
 
     //the setter for the label.
-    def updateCell = {
-      //setLabel(formatter.format(_temperature))
+    //Returns true if the number has not changed by .01 for this update.
+    def checkAndChange : Boolean = {
+      val epsilon : Double = EPSILON
+      val compare : Double = Math.abs(prev - _temperature)
+      //println(compare)
       prev = _temperature
-      //println(_temperature * MAX_RATIO)
       overrideBackground(StateFlags.NORMAL, new RGBA(_temperature * MAX_RATIO, 0, 0, 1.0))
+      if(compare <= epsilon) {
+        this.overrideBackground(StateFlags.NORMAL, RGBA.GREEN)
+        println(s"Previouse temperature [$prev]\n" +
+          s"Current Temperature [${_temperature}]")
+      }
+      compare <= epsilon
     }
 
   }
@@ -333,7 +339,7 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
     val sumFuture : Future[List[Double]] = Future sequence adaCountList
     val result = for {
       fin <- sumFuture
-    } yield (cell.composition.adamantium.thermalConstant * fin.sum) / cell.neighbors.size
+    } yield cell.composition.adamantium.thermalConstant * (fin.sum / cell.neighbors.size)
     result
   }
 
@@ -346,7 +352,7 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
     val sumFuture : Future[List[Double]] = Future sequence croCountList
     val result = for {
       fin <- sumFuture
-    } yield (cell.composition.chromium.thermalConstant * fin.sum) / cell.neighbors.size
+    } yield cell.composition.chromium.thermalConstant * (fin.sum / cell.neighbors.size)
     result
   }
 
@@ -359,50 +365,74 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
     val sumFuture : Future[List[Double]] = Future sequence vibraCountList
     val result = for {
       fin <- sumFuture
-    } yield (cell.composition.vibranium.thermalConstant * fin.sum) / cell.neighbors.size
+    } yield cell.composition.vibranium.thermalConstant * (fin.sum / cell.neighbors.size)
     result
   }
 
-  def testRun(): Unit = {
-      val totalFuture = TABLE.map {
-        val count = new AtomicInteger(0)
-        _.map {
-          (cell) => if(!(cell.cellType.equals(UPPER_LEFT) || cell.cellType.equals(LOWER_RIGHT))) {
-            {
-              Future {
-                val vibFuture: Future[Double] = vibraniumTotal(cell)
-                val croFuture: Future[Double] = chromiumTotal(cell)
-                val adaFuture: Future[Double] = adamantiumTotal(cell)
+  def isNotCorner(cell : Cell) : Boolean = !(cell.cellType.equals(UPPER_LEFT) || cell.cellType.equals(LOWER_RIGHT))
 
-                val newTemp : Future[Double] = for {
-                  vib <- vibFuture
-                  cro <- croFuture
-                  ada <- adaFuture
-                } yield vib + cro + ada
-
-                newTemp onComplete {
-                  case Success(temperature) => {
-                    //println(s"New temperature ${temperature}, Old temperature ${cell.temperature} ${temperature > cell.temperature}")
-                    cell.temperature = temperature
-                    if (count.incrementAndGet() == (numberOfColumns * numberOfRows) - 2) {
-                      //println("****LAST ONE *******")
-                      TABLE foreach {
-                        _ filter ((cell) => !(cell.cellType.equals(UPPER_LEFT) || cell.cellType.equals(LOWER_RIGHT))) foreach {
-                          _ updateCell
-                        }
-                      }
-                      testRun()
-                    }
-                  }
-                }
-                newTemp
-              }
-            }
-          } else {
-            cell.updateCell
-          }
+  def updateAllCells() : Unit = {
+    val result = TABLE map {
+      (row) =>
+        row filter isNotCorner map {(cell) =>
+          cell.checkAndChange
         }
+    }
+    val allBools = result.flatten
+    val unChangers = allBools count (_ == true)
+    val done = (unChangers / ((this.numberOfRows * this.numberOfColumns) - 2)) >= .98
+
+    println(unChangers)
+
+    if(done){
+      println("EQ REACHED!!!!")
+      System.exit(0)
+    }
+
+  }
+
+  def testRun(): Unit = {
+    val totalFuture = TABLE map {(row) =>
+      row filterNot isNotCorner foreach {
+        (cell) => println(s"Corner TEMP! ${cell.temperature}")
       }
+      row filter isNotCorner map {
+        calculateNewTemp
+      }
+    }
+
+    val cellFutures : ListBuffer[Future[Double]]= totalFuture.flatten
+
+    val allFutures : Future[ListBuffer[Double]] = Future sequence cellFutures
+
+    allFutures onComplete {
+    case Success(done) =>
+      updateAllCells()
+      println("DONE")
+      testRun()
+    case Failure(e) => println(e.toString)
+    }
+  }
+
+  def calculateNewTemp(cell : Cell) : Future[Double] = {
+    val vibFuture: Future[Double] = vibraniumTotal(cell)
+    val croFuture: Future[Double] = chromiumTotal(cell)
+    val adaFuture: Future[Double] = adamantiumTotal(cell)
+
+    val newTemp : Future[Double] = for {
+      vib <- vibFuture
+      cro <- croFuture
+      ada <- adaFuture
+    } yield vib + cro + ada
+
+    newTemp onComplete {
+      case Success(temperature) => {
+        cell.temperature = temperature
+      }
+      case Failure(e) => println(e.toString)
+    }
+
+    newTemp
   }
 
 
