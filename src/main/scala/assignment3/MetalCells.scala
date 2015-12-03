@@ -1,23 +1,23 @@
 package assignment3
 
 import java.text.DecimalFormat
+import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 
+import org.freedesktop.cairo.Context
 import org.gnome.gdk.{EventButton, RGBA, Event}
-import org.gnome.gtk.{Widget, Fixed, Gtk}
+import org.gnome.gtk
+import org.gnome.gtk.Widget.{Hide, Draw, ButtonPressEvent}
 import org.gnome.pango.FontDescription
-import org.gnome.gtk.{Window, ToggleButton, Label}
-import org.gnome.gtk.StateFlags
-import org.gnome.gtk.WindowPosition
 import scala.annotation.tailrec
 import scala.collection.parallel.ParSeq
 import scala.concurrent._
-import ExecutionContext.Implicits.global
+//import ExecutionContext.Implicits.global
 import scala.collection.mutable._
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success, Try, Random}
-
+import org.gnome.gtk.{Widget, ToggleButton, Window, Gtk, Fixed, DrawingArea, StateFlags, WindowPosition}
 
 
 trait Metal{
@@ -53,11 +53,9 @@ object Composition {
   }
 }
 
-class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (Int, Int)) extends Window with ToggleButton.Toggled {
+class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (Int, Int)) extends Window {
+  implicit val ec = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(4))
   val EPSILON : Double = .01
-  val CELL_WIDTH = cellSize._1
-  val CELL_HEIGHT = cellSize._2
-  val CELL_PADDING = 1
   val TABLE = ListBuffer[ListBuffer[Cell]]()
 
   val UPPER_LEFT = "upperLeft"
@@ -73,7 +71,7 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
   val UPPER_BORDER = "topBorder"
   val LOWER_BORDER = "bottomBorder"
 
-  val MAX_TEMPERATURE : Double = 10000.0
+  val MAX_TEMPERATURE : Double = 1000.0
   val S_VALUE = MAX_TEMPERATURE
   val T_VALUE = 112
   val MAX_RATIO : Double = 255.0 / MAX_TEMPERATURE
@@ -87,43 +85,44 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
       }
     })
 
-    val fixed: Fixed = new Fixed
+    //val da = new DrawingArea()
+    //add(da)
+    val b = new ToggleButton()
+    add(b)
+    b.connect(new ButtonPressEvent {
+      override def onButtonPressEvent(widget: Widget, eventButton: EventButton): Boolean = {
+        initPixels(new Context(widget.getWindow))
+        testRun()
+        false
+      }
+    })
+  }
 
-    var rowPos : Int = CELL_WIDTH + CELL_PADDING
-
+  def initPixels(context : Context) : Unit = {
     TABLE ++= (for(row <- 0 to numberOfRows - 1) yield {
+      context.setSource(0.0, 0.0, 0.0, 1.0)
       val newRow  = ListBuffer[Cell]()
-      rowPos += CELL_WIDTH + CELL_PADDING
-      var columnPos = 0
-
       newRow ++= (for(column <- 0 to numberOfColumns - 1) yield {
-        columnPos += CELL_WIDTH + CELL_PADDING
 
-        val toButton = (width : Int, height: Int, location: Location) => (color : RGBA) => Cell(width, height, location, color, Composition.randomComposition, 0)
+        context.rectangle(column, row, 1, 1)
 
-        val preCell = toButton(CELL_WIDTH, CELL_HEIGHT, Location(column, row))
+        context.fill()
+
+        val toButton = (location: Location) => (color : RGBA) => Cell(location, color, Composition.randomComposition, 0.0, row, column, context)
+        val preCell = toButton(Location(column, row))
 
         val cellButton = preCell(RGBA.BLACK)
 
-        fixed.put(cellButton, columnPos, rowPos)
-
-
-        cellButton.overrideFont(new FontDescription("white, Monospace, 12"))
-        cellButton.setSizeRequest(CELL_WIDTH, CELL_HEIGHT)
-
-        cellButton.connect(this)
-
         setBorderType(cellButton)
-
         cellButton
+
       })
-
       newRow
-
     })
+    val s : Int = (TABLE flatten).size
 
-    //fixed.put(new Label("Metal Cells"), 20, 20)
-    add(fixed)
+    //println(s"Number of cells $s")
+
   }
 
   def randomTriple : (Double, Double, Double) = {
@@ -134,11 +133,6 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
     val total : Double = firstRandom + secondRandom + thirdRandom
 
     (firstRandom / total, secondRandom / total, thirdRandom / total)
-  }
-
-
-  def onToggled(toggleButton: ToggleButton) {
-    testRun()
   }
 
   case class Location(column : Int, row : Int)
@@ -264,17 +258,16 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
     }
   }
 
-  case class Cell(width : Int, height : Int, location : Location, defaultColor : RGBA, composition: Composition, var _temperature : Double) extends ToggleButton {
+  case class Cell(location : Location, defaultColor : RGBA, composition: Composition, var _temperature : Double, column : Int, row : Int, context : Context) {
     var cellType = setBorderType(this)
     lazy val neighbors : List[Cell] = getNeighborIndices(this).map((location) => TABLE(location.row)(location.column))
 
     var prev = _temperature
 
-    setSizeRequest(width, height)
     overrideBackground(StateFlags.NORMAL, defaultColor)
 
     override def toString : String = {
-      s"Cell(width : ${this.width}, height : ${this.height}, location : ${this.location}, defaultColor : ${this.defaultColor}, composition: ${this.composition}, temperature : ${this.temperature}, cellType : ${this.cellType})"
+      s"Cell(location : ${this.location}, defaultColor : ${this.defaultColor}, composition: ${this.composition}, temperature : ${this.temperature}, cellType : ${this.cellType})"
     }
 
     def resetColor() = {
@@ -282,7 +275,7 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
     }
 
     def color_=(bgColor : RGBA) = {
-      this.overrideBackground(StateFlags.NORMAL, bgColor)
+      context.setSource(bgColor.getRed, bgColor.getGreen, bgColor.getBlue, bgColor.getAlpha)
     }
 
     //The temperature always refers to label's temperature which holds the previous temperature.
@@ -298,13 +291,21 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
     def checkAndChange : Boolean = {
       val epsilon : Double = EPSILON
       val compare : Double = Math.abs(prev - _temperature)
-      //println(compare)
+
       prev = _temperature
-      overrideBackground(StateFlags.NORMAL, new RGBA(_temperature * MAX_RATIO, 0, 0, 1.0))
+
+      context.setSource(MAX_RATIO * _temperature, 0.0, 0.0, 1.0)
+
+      //context.rectangle(row, column, 1, 1)
+
+      context.rectangle(row, column, 1, 1)
+
+      context.fill
+
       if(compare <= epsilon) {
-        this.overrideBackground(StateFlags.NORMAL, RGBA.GREEN)
-        println(s"Previouse temperature [$prev]\n" +
-          s"Current Temperature [${_temperature}]")
+        //this.overrideBackground(StateFlags.NORMAL, RGBA.GREEN)
+//        println(s"Previouse temperature [$prev]\n" +
+//          s"Current Temperature [${_temperature}]")
       }
       compare <= epsilon
     }
@@ -372,13 +373,16 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
   def isNotCorner(cell : Cell) : Boolean = !(cell.cellType.equals(UPPER_LEFT) || cell.cellType.equals(LOWER_RIGHT))
 
   def updateAllCells() : Unit = {
+
     val result = TABLE map {
       (row) =>
         row filter isNotCorner map {(cell) =>
           cell.checkAndChange
         }
     }
+
     val allBools = result.flatten
+
     val unChangers = allBools count (_ == true)
     val done = (unChangers / ((this.numberOfRows * this.numberOfColumns) - 2)) >= .98
 
@@ -393,9 +397,9 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
 
   def testRun(): Unit = {
     val totalFuture = TABLE map {(row) =>
-      row filterNot isNotCorner foreach {
-        (cell) => println(s"Corner TEMP! ${cell.temperature}")
-      }
+//      row filterNot isNotCorner foreach {
+//        (cell) => println(s"Corner TEMP! ${cell.temperature}")
+//      }
       row filter isNotCorner map {
         calculateNewTemp
       }
@@ -406,9 +410,10 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
     val allFutures : Future[ListBuffer[Double]] = Future sequence cellFutures
 
     allFutures onComplete {
+
     case Success(done) =>
-      updateAllCells()
-      println("DONE")
+      //updateAllCells()
+      //println("DONE")
       testRun()
     case Failure(e) => println(e.toString)
     }
@@ -428,6 +433,7 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
     newTemp onComplete {
       case Success(temperature) => {
         cell.temperature = temperature
+        cell.checkAndChange
       }
       case Failure(e) => println(e.toString)
     }
@@ -440,7 +446,7 @@ class MetalCells(val numberOfRows : Int, val numberOfColumns : Int, cellSize : (
   setTitle("ToggleButton")
   initUI()
   setPosition(WindowPosition.CENTER)
-  setSizeRequest(350, 220)
+  setDefaultSize(numberOfColumns, numberOfRows)
   showAll()
   Gtk.main()
 
