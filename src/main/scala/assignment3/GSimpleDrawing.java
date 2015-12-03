@@ -1,3 +1,5 @@
+package assignment3;
+
 import org.freedesktop.cairo.Context;
 import org.gnome.gdk.Event;
 import org.gnome.gtk.*;
