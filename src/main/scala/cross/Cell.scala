@@ -1,11 +1,10 @@
 package cross
 
 import cross.cellutils.Composition
-
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 /**
-  * Created by rtorres12 on 12/9/15.
+  * Cell trait for all objects that hold cell data.
   */
 trait Cell {
   val location : Location
@@ -22,5 +21,13 @@ trait Cell {
   }
 }
 
+/**
+  * Location class for storing the current location of a cell.
+  *
+  * @param column
+  *               The column in a table.
+  * @param row
+  *            The row in a table.
+  */
 case class Location(column : Int, row : Int)
 

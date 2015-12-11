@@ -1,5 +1,4 @@
 package client
-import cross.HeatConstants
 import org.freedesktop.cairo.Context
 /**
   * Painter class that paints on a context.

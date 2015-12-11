@@ -7,7 +7,7 @@ import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 /**
-  * Created by rtorres12 on 12/10/15.
+  * Dummy cell for containing the values of the borders.
   */
 case class DummyCell() extends Cell {
   override var temperature = 1000.0

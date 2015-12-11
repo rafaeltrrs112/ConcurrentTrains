@@ -3,18 +3,13 @@ package serverdist
   * Created by rtorres12 on 12/8/15.
   */
 
-import java.util.concurrent.TimeUnit
-
-import akka.actor.ActorSystem
-import cross.{Adamantium, DummyCell}
-import cross.cellutils.Composition
 import io.backchat.hookup._
 import io.backchat.hookup.HookupServer.HookupServerClient
-import spray.json._
 import scala.concurrent.Future
 import cross.HeatConstants._
 /**
   * A server class to run on RHO.
+  *
   * @param port
   *               The port to connect to.
   */
@@ -24,8 +19,6 @@ class HeatNet(port : Int, numberOfRows : Int, numberOfColumns : Int, config : Co
 
   val BEGIN = "BEGIN"
   val WAVE = "WAVE"
-
-  val COMP_INIT = -99
 
   val serverModule = new HookupServerClient {
     override def receive = onReceiver

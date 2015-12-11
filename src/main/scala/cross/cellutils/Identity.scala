@@ -6,9 +6,17 @@ import cross.{Location, Cell}
 import serverdist.{Bottom, Top, Config}
 
 /**
-  * Created by rtorres12 on 12/8/15.
+  * Convenience object for cell identity settings.
   */
 object Identity {
+  /**
+    * Returns the indices of all the neighbors of a cell.
+    *
+    * @param cell
+    *             A cell.
+    * @return
+    *         The indices of the cell's neighbors.
+    */
   def getNeighborIndices(cell : Cell) : List[Location] = {
     cell.cellType match {
       case UPPER_LEFT => List[Location]()
@@ -65,6 +73,20 @@ object Identity {
     }
   }
 
+  /**
+    * Updates the border type of the cell.
+    *
+    * @param cell
+    *             The cell who border's are being set.
+    * @param numberOfRows
+    *                     The number of rows in the parent table.
+    * @param numberOfColumns
+    *                        The number of columns int he parent table.
+    * @param config
+    *               The configuration of the parent table.
+    * @return
+    *         The new border type.
+    */
   def setBorderType(cell: Cell, numberOfRows : Int, numberOfColumns : Int, config : Config): String = {
     val columnEnd: Int = numberOfColumns - 1
     val rowEnd: Int = numberOfRows - 1
@@ -112,6 +134,19 @@ object Identity {
     }
   }
 
+  /**
+    *
+    * Determines if a cell is a corner cell.
+    *
+    * @param location
+    *                 The cell's location.
+    * @param numberOfRows
+    *                     The number of rows in the parent table.
+    * @param numberOfColumns
+    *                        The number of columns int he parent table.
+    * @return
+    *         True if the cell is on the corners.
+    */
   def isCorner(location: Location, numberOfRows : Int, numberOfColumns : Int): Boolean = {
     val columnEnd: Int = numberOfColumns - 1
     val rowEnd: Int = numberOfRows - 1
@@ -124,8 +159,19 @@ object Identity {
     }
   }
 
+  /**
+    * Determines if a cell is a border cell.
+    *
+    * @param location
+    *                 The cell's location.
+    * @param numberOfRows
+    *                     The number of rows in the parent table.
+    * @param numberOfColumns
+    *                        The number of columns int he parent table.
+    * @return
+    *         True if the cell is on the borders.
+    */
   def isBorder(location: Location, numberOfRows : Int, numberOfColumns : Int): Boolean = {
-
     val columnEnd: Int = numberOfColumns - 1
     val rowEnd: Int = numberOfRows - 1
 
